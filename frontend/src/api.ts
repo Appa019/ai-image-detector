@@ -1,6 +1,6 @@
 /**
  * Cliente de API — Detector de Conteúdo Gerado por IA
- * Conecta ao backend FastAPI em /api (proxy Vite -> http://localhost:8000)
+ * Conecta ao backend FastAPI em /api (proxy Vite -> http://localhost:8001)
  */
 
 import axios from 'axios'
