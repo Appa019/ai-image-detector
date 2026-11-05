@@ -17,7 +17,7 @@ Fornece score de confianca (0-100%) com visualizacao estatistica detalhada.
 ## Arquitetura
 - Backend: FastAPI (api.py na raiz) + Python 3.12 com .venv
 - Frontend principal: React + Vite (frontend/) — app de analise
-- Landing page: React + Vite (landing/) — pagina de apresentacao
+- Landing page: fora deste repo, publicada em https://detector-ia-landing.vercel.app/
 - DL: PyTorch + HuggingFace Transformers
 - Graficos: Recharts (frontend) + Matplotlib (heatmaps backend)
 - Video: OpenCV + facenet-pytorch (MTCNN)
@@ -28,13 +28,10 @@ Fornece score de confianca (0-100%) com visualizacao estatistica detalhada.
 .venv/bin/uvicorn api:app --host 0.0.0.0 --port 8001
 
 # Frontend principal
-cd frontend && npm run dev        # http://localhost:5176 (proxy -> 8001)
-
-# Landing page
-cd landing && npm run dev
+cd frontend && npm run dev        # http://localhost:5173, padrao do Vite (proxy -> 8001)
 
 # Baixar modelos
-.venv/bin/python utils/download_models.py
+.venv/bin/python -m utils.download_models  # rodar como script quebra o import de config
 
 # Testes
 .venv/bin/pytest tests/
@@ -79,7 +76,6 @@ cd landing && npm run dev
 - visualization/ — heatmaps, video_timeline
 - utils/ — gpu_manager, download_models
 - frontend/ — app React principal (Vite + Tailwind + Recharts)
-- landing/ — landing page React (Vite + Tailwind)
 - tests/ — testes unitarios e integracao
 
 ## Gotchas
