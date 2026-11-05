@@ -1,186 +1,124 @@
-# Detector de Conteudo Gerado por IA
-**Link da Landing:https://detector-ia-landing.vercel.app/**
+# Detector de Conteúdo Gerado por IA
 
-Sistema de deteccao de imagens e videos gerados por inteligencia artificial, utilizando um ensemble de modelos de Deep Learning e Machine Learning. Fornece um score de confianca (0-100%) com analise forense detalhada e visualizacoes interativas.
+Landing page: [detector-ia-landing.vercel.app](https://detector-ia-landing.vercel.app/)
 
-## Download e Inicio Rapido
+Sistema de detecção de imagens e vídeos gerados por inteligência artificial, utilizando um ensemble de modelos de Deep Learning e Machine Learning. Fornece um score de confiança (0-100%) com análise forense detalhada e visualizações interativas.
+
+## Instalação e uso
 
 ```bash
-# 1. Clone o repositorio
-git clone https://github.com/Appa019/Detector_IA_ML_DL.git
-cd Detector_IA_ML_DL
+# 1. Clone o repositório
+git clone https://github.com/Appa019/ai-image-detector.git
+cd ai-image-detector
 
-# 2. Crie o ambiente virtual e instale as dependencias Python
+# 2. Crie o ambiente virtual e instale as dependências Python
 python -m venv .venv
 source .venv/bin/activate        # Linux/Mac
 # .venv\Scripts\activate         # Windows
 
 pip install -r requirements.txt
+pip install fastapi uvicorn python-multipart   # API (não estão no requirements.txt)
 
-# 3. Baixe os modelos do HuggingFace (~3-5 GB no total)
-python utils/download_models.py
+# 3. Baixe os modelos do HuggingFace Hub para models_cache/ (~12 GB, sendo ~6,9 GB do CLIP ViT-L/14)
+python -m utils.download_models
 
-# 4. Instale as dependencias do frontend
+# 4. Instale as dependências do frontend
 cd frontend && npm install && cd ..
 
 # 5. Inicie o backend e o frontend (em terminais separados)
-uvicorn api:app --host 0.0.0.0 --port 8000
+uvicorn api:app --host 0.0.0.0 --port 8001
 # em outro terminal:
 cd frontend && npm run dev
 ```
 
-Acesse `http://localhost:5173` no navegador. A API estara em `http://localhost:8000/docs`.
+Acesse `http://localhost:5173` no navegador. O Vite repassa as chamadas `/api` para `http://localhost:8001` (ver `frontend/vite.config.ts`), por isso o backend precisa rodar na porta 8001. A documentação interativa da API fica em `http://localhost:8001/docs`.
 
 ## Funcionalidades
 
-- **Deteccao de imagens** geradas por IA (Midjourney, Stable Diffusion, DALL-E, etc.)
-- **Deteccao de deepfakes** em videos com timeline frame-a-frame
-- **Ensemble de modelos** com agregacao inteligente (meta-learner ou media ponderada)
-- **Analise forense completa**: GradCAM, FFT/DCT, ELA, wavelets, noise print, SRM kernels
-- **Calibracao de confianca** via Isotonic Regression ou Temperature Scaling
-- **Extracao de metadados EXIF** com indicadores automaticos de geracao por IA
-- **Interface moderna**: frontend React + API REST (FastAPI)
+- **Detecção de imagens** geradas por IA (Midjourney, Stable Diffusion, DALL-E, etc.)
+- **Detecção de deepfakes** em vídeos com timeline frame a frame
+- **Ensemble de modelos** com agregação por meta-learner (GradientBoosting) ou média ponderada
+- **Análise forense**: GradCAM, FFT/DCT, ELA, wavelets, noise print, SRM kernels
+- **Calibração de confiança** via Isotonic Regression ou Temperature Scaling
+- **Extração de metadados EXIF** com indicadores automáticos de geração por IA
+- **Interface web**: frontend React + API REST (FastAPI)
 - **Otimizado para GPU**: modelos em FP16 com carregamento sequencial para economizar VRAM
 
 ## Arquitetura
 
 ```
-┌──────────────────────────────────────────────────┐
-│                   Interface                       │
-│              React + FastAPI                      │
-├──────────────────────────────────────────────────┤
-│               Pipeline (core/)                    │
-│  Orquestra deteccao sequencial + analise forense  │
-├──────────────────────────────────────────────────┤
-│            Ensemble (core/ensemble.py)            │
-│    Meta-learner (GBM)  |  Media ponderada         │
-├──────────────────────────────────────────────────┤
-│              Modelos (models/)                    │
-│  ViT  |  SDXL Det  |  AI Image  |  SigLIP  |    │
-│  FFT/DCT  |  EfficientNet-B4 (video)             │
-├──────────────────────────────────────────────────┤
-│          Analise Forense (analysis/)              │
-│  ELA | FFT | GradCAM | Wavelets | Pixels | EXIF  │
-├──────────────────────────────────────────────────┤
-│           GPU Manager (utils/)                    │
-│     VRAM tracking  |  FP16  |  Cache cleanup      │
-└──────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│                     Interface                      │
+│        React (frontend/) + FastAPI (api.py)        │
+├────────────────────────────────────────────────────┤
+│            Pipeline (core/pipeline.py)             │
+│  Orquestra detecção sequencial + análise forense   │
+├────────────────────────────────────────────────────┤
+│            Ensemble (core/ensemble.py)             │
+│       Meta-learner (GBM)  |  Média ponderada       │
+├────────────────────────────────────────────────────┤
+│                 Modelos (models/)                  │
+│      ViT  |  SDXL Det  |  AI Image  |  SigLIP      │
+│        FFT/DCT  |  EfficientNet-B4 (vídeo)         │
+├────────────────────────────────────────────────────┤
+│            Análise Forense (analysis/)             │
+│   ELA | FFT | GradCAM | Wavelets | Pixels | EXIF   │
+├────────────────────────────────────────────────────┤
+│         GPU Manager (utils/gpu_manager.py)         │
+│      VRAM tracking  |  FP16  |  Cache cleanup      │
+└────────────────────────────────────────────────────┘
 ```
 
 ## Modelos do Ensemble
 
 | Modelo | Arquitetura | VRAM (FP16) | Papel |
 |--------|------------|-------------|-------|
-| Deep Fake Detector v2 | ViT-base-patch16-224 | ~250 MB | Analise espacial de texturas e artefatos |
-| SDXL Detector (Organika) | Fine-tuned SDXL classifier | ~1.7 GB | Especializado em modelos de difusao |
+| Deep Fake Detector v2 | ViT-base-patch16-224 | ~250 MB | Análise espacial de texturas e artefatos |
+| SDXL Detector (Organika) | Fine-tuned SDXL classifier | ~1.7 GB | Especializado em modelos de difusão |
 | AI Image Detector | ViT (Vision Transformer) | ~280 MB | Treinado em Midjourney/SD/DALL-E |
-| SigLIP AI vs Human | SiglipForImageClassification | ~180 MB | Detector binario IA vs Humano |
-| Analisador de Frequencia | FFT/DCT + MLP | ~50 MB | Artefatos de frequencia de GANs/difusao |
-| EfficientNet-B4 | EfficientNet-B4 | ~150 MB | Deepfakes em video (face swap) |
+| SigLIP AI vs Human | SiglipForImageClassification | ~180 MB | Detector binário IA vs. humano |
+| Analisador de Frequência | FFT/DCT + MLP | ~50 MB | Artefatos de frequência de GANs/difusão |
+| EfficientNet-B4 | EfficientNet-B4 | ~150 MB | Deepfakes em vídeo (face swap) |
 
-Modelos adicionais disponiveis (desabilitados por padrao): CLIP ViT-L/14, DINOv2-Small, SigLIP2 3-Classes.
+Modelos adicionais disponíveis (desabilitados por padrão em `config/model_registry.py`): CLIP ViT-L/14, DINOv2-Small, SigLIP2 3-Classes.
 
-## Analises Forenses
+## Análises Forenses
 
-- **GradCAM**: Mapas de calor mostrando regioes que influenciaram a decisao
-- **Espectro FFT/DCT**: Detecta padroes de frequencia tipicos de geradores
-- **ELA (Error Level Analysis)**: Identifica inconsistencias de compressao JPEG
-- **Wavelets**: Analise multi-escala de texturas e ruido
-- **Noise Print**: Visualiza padroes de ruido da imagem
-- **SRM Kernels**: Filtros de Steganalysis Rich Model para deteccao de manipulacao
-- **Estatisticas de Pixels**: Uniformidade, histograma RGB, inconsistencias locais
-- **Metadados EXIF**: Extrai e analisa metadados com indicadores automaticos de IA
+- **GradCAM**: mapas de calor mostrando as regiões que influenciaram a decisão
+- **Espectro FFT/DCT**: detecta padrões de frequência típicos de geradores
+- **ELA (Error Level Analysis)**: identifica inconsistências de compressão JPEG
+- **Wavelets**: análise multiescala de texturas e ruído
+- **Noise Print**: visualiza padrões de ruído da imagem
+- **SRM Kernels**: filtros de Steganalysis Rich Model para detecção de manipulação
+- **Estatísticas de Pixels**: uniformidade, histograma RGB, inconsistências locais
+- **Metadados EXIF**: extrai e analisa metadados com indicadores automáticos de IA
 
 ## Requisitos
 
 ### Hardware
 - **GPU**: NVIDIA com suporte CUDA (testado em RTX 2070 SUPER 8GB)
 - **RAM**: 16 GB recomendado
-- **Disco**: ~5 GB para cache dos modelos
+- **Disco**: ~13 GB para o cache dos modelos
 
 ### Software
 - Python 3.10+
 - CUDA 11.8+ e cuDNN
 - Node.js 18+ (para o frontend React)
 
-## Instalacao
-
-### 1. Clone o repositorio
-
-```bash
-git clone https://github.com/Appa019/Detector_IA_ML_DL.git
-cd Detector_IA_ML_DL
-```
-
-### 2. Crie um ambiente virtual
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
-```
-
-### 3. Instale as dependencias Python
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Baixe os modelos
-
-```bash
-python utils/download_models.py
-```
-
-Os modelos serao baixados do HuggingFace Hub e salvos em `models_cache/`.
-
-### 5. (Opcional) Configure o frontend React
-
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
-```
-
-## Uso
-
-### API REST (FastAPI)
-
-```bash
-uvicorn api:app --host 0.0.0.0 --port 8000
-```
-
-Documentacao interativa disponivel em `http://localhost:8000/docs`.
-
-### Frontend React + API
-
-Em um terminal, inicie a API:
-```bash
-uvicorn api:app --host 0.0.0.0 --port 8000
-```
-
-Em outro terminal, inicie o frontend:
-```bash
-cd frontend
-npm run dev
-```
-
 ## Endpoints da API
 
-| Metodo | Rota | Descricao |
+| Método | Rota | Descrição |
 |--------|------|-----------|
 | `GET` | `/api/status` | Status da API, GPU e modelos |
 | `GET` | `/api/modelos` | Lista modelos do ensemble |
 | `POST` | `/api/analisar/imagem` | Analisa uma imagem (multipart) |
-| `POST` | `/api/analisar/imagem/stream` | Analise com progresso via SSE |
-| `POST` | `/api/analisar/video` | Analisa um video (multipart) |
+| `POST` | `/api/analisar/imagem/stream` | Análise com progresso via SSE |
+| `POST` | `/api/analisar/video` | Analisa um vídeo (multipart) |
 
 ### Exemplo com cURL
 
 ```bash
-curl -X POST http://localhost:8000/api/analisar/imagem \
+curl -X POST http://localhost:8001/api/analisar/imagem \
   -F "arquivo=@foto.jpg"
 ```
 
@@ -188,14 +126,14 @@ curl -X POST http://localhost:8000/api/analisar/imagem \
 
 ```
 ├── api.py                    # API REST (FastAPI)
-├── requirements.txt          # Dependencias Python
+├── requirements.txt          # Dependências Python
 ├── config/
-│   ├── settings.py           # Configuracoes globais
+│   ├── settings.py           # Configurações globais
 │   └── model_registry.py     # Registro de modelos do ensemble
 ├── core/
-│   ├── pipeline.py           # Pipeline principal de deteccao
-│   ├── ensemble.py           # Agregacao de scores (meta-learner + fallback)
-│   └── confidence.py         # Calibracao e intervalos de confianca
+│   ├── pipeline.py           # Pipeline principal de detecção
+│   ├── ensemble.py           # Agregação de scores (meta-learner + fallback)
+│   └── confidence.py         # Calibração e intervalos de confiança
 ├── models/
 │   ├── base.py               # Classe abstrata DetectorBase
 │   ├── spatial_vit.py        # ViT Deep Fake Detector v2
@@ -203,26 +141,26 @@ curl -X POST http://localhost:8000/api/analisar/imagem \
 │   ├── ai_image_detector.py  # AI Image Detector (ViT)
 │   ├── siglip_detector.py    # SigLIP AI vs Human
 │   ├── frequency_analyzer.py # Analisador FFT/DCT
-│   ├── efficientnet_detector.py # EfficientNet-B4 (video)
+│   ├── efficientnet_detector.py # EfficientNet-B4 (vídeo)
 │   ├── clip_detector.py      # CLIP UniversalFakeDetect
 │   ├── dinov2_detector.py    # DINOv2-Small
 │   └── siglip2_detector.py   # SigLIP2 3-Classes
 ├── analysis/
 │   ├── ela.py                # Error Level Analysis
-│   ├── frequency.py          # Analise espectral FFT/DCT
+│   ├── frequency.py          # Análise espectral FFT/DCT
 │   ├── gradcam.py            # GradCAM para mapas de calor
-│   ├── metadata.py           # Extracao EXIF e indicadores de IA
-│   ├── pixel_stats.py        # Estatisticas de pixels e noise print
+│   ├── metadata.py           # Extração EXIF e indicadores de IA
+│   ├── pixel_stats.py        # Estatísticas de pixels e noise print
 │   ├── srm_kernels.py        # Steganalysis Rich Model kernels
-│   └── wavelet.py            # Analise wavelet multi-escala
+│   └── wavelet.py            # Análise wavelet multiescala
 ├── processing/
-│   ├── image_processor.py    # Preprocessamento de imagens
-│   ├── video_processor.py    # Extracao de frames de video
-│   └── face_detector.py      # Deteccao facial (MTCNN)
+│   ├── image_processor.py    # Pré-processamento de imagens
+│   ├── video_processor.py    # Extração de frames de vídeo
+│   └── face_detector.py      # Detecção facial (MTCNN)
 ├── visualization/
-│   ├── charts.py             # Graficos Plotly interativos
+│   ├── charts.py             # Gráficos Plotly interativos
 │   ├── heatmaps.py           # Heatmaps Matplotlib
-│   └── video_timeline.py     # Timeline de analise de video
+│   └── video_timeline.py     # Timeline de análise de vídeo
 ├── utils/
 │   ├── gpu_manager.py        # Gerenciamento de VRAM
 │   ├── download_models.py    # Download de modelos do HuggingFace
@@ -241,23 +179,25 @@ curl -X POST http://localhost:8000/api/analisar/imagem \
     └── test_pipeline.py
 ```
 
-## Calibracao e Fine-tuning
+## Calibração e Fine-tuning
 
-O sistema suporta calibracao com dados proprios para melhorar a precisao:
+O sistema suporta calibração com dados próprios. O dataset precisa ter as subpastas `real/` (fotos reais) e `ia/` (imagens geradas por IA):
 
 ```bash
-python utils/treinar_calibracao.py
+python utils/treinar_calibracao.py --dataset_dir <caminho> [--epochs 10] [--batch_size 32]
 ```
 
 Isso treina:
-- **IsotonicRegression** para calibracao de scores
+- **Cabeças lineares** do DINOv2 e do CLIP e o **MLP** do analisador de frequência
 - **Meta-learner (GradientBoosting)** para stacking do ensemble
+- **IsotonicRegression** para calibração de scores
 
-Os artefatos sao salvos em `models_cache/calibracao/` e `models_cache/ensemble/`.
+Os artefatos são salvos em `models_cache/` (meta-learner em `models_cache/ensemble/`, calibrador em `models_cache/calibracao/`). Sem eles, o ensemble usa média ponderada e a calibração usa Temperature Scaling.
 
 ## Testes
 
 ```bash
+pip install pytest
 pytest tests/
 ```
 
@@ -265,11 +205,11 @@ pytest tests/
 
 - **Backend**: Python, PyTorch, HuggingFace Transformers, FastAPI
 - **Frontend**: React, TypeScript, Tailwind CSS, Recharts, Vite
-- **Visualizacao**: Plotly, Matplotlib
-- **Video**: OpenCV, facenet-pytorch (MTCNN)
-- **ML**: scikit-learn (calibracao e meta-learner)
-- **Analise de sinais**: NumPy, SciPy, PyWavelets
+- **Visualização**: Recharts (frontend), Matplotlib (heatmaps no backend)
+- **Vídeo**: OpenCV, facenet-pytorch (MTCNN)
+- **ML**: scikit-learn (calibração e meta-learner)
+- **Análise de sinais**: NumPy, SciPy, PyWavelets
 
-## Licenca
+## Licença
 
-Este projeto e de uso academico e educacional.
+MIT. Veja [LICENSE](LICENSE).
