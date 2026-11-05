@@ -17,7 +17,7 @@ Fornece score de confianca (0-100%) com visualizacao estatistica detalhada.
 ## Arquitetura
 - Backend: FastAPI (api.py na raiz) + Python 3.12 com .venv
 - Frontend principal: React + Vite (frontend/) — app de analise
-- Landing page: fora deste repo, publicada em https://detector-ia-landing.vercel.app/
+- Landing page: landing/ (Vite + React + Tailwind v4, `npm run build`), projeto Vercel detector-ia-landing, publicada em https://detector-ia-landing.vercel.app/
 - DL: PyTorch + HuggingFace Transformers
 - Graficos: Recharts (frontend) + Matplotlib (heatmaps backend)
 - Video: OpenCV + facenet-pytorch (MTCNN)
