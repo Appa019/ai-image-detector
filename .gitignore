@@ -25,6 +25,3 @@ frontend/dist/
 .claude/
 *.jpg
 *.png
-
-# landing page assets are real screenshots, not model artifacts
-!landing/public/**
