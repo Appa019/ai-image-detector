@@ -17,7 +17,6 @@ source .venv/bin/activate        # Linux/Mac
 # .venv\Scripts\activate         # Windows
 
 pip install -r requirements.txt
-pip install fastapi uvicorn python-multipart   # API (não estão no requirements.txt)
 
 # 3. Baixe os modelos do HuggingFace Hub para models_cache/ (~12 GB, sendo ~6,9 GB do CLIP ViT-L/14)
 python -m utils.download_models
@@ -197,7 +196,6 @@ Os artefatos são salvos em `models_cache/` (meta-learner em `models_cache/ensem
 ## Testes
 
 ```bash
-pip install pytest
 pytest tests/
 ```
 
